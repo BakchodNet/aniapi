@@ -4,7 +4,7 @@ import axios from "axios";
 import { load } from "cheerio";
 import CryptoJS from "crypto-js";
 
-const BASE_URL = "https://anitaku.to/";
+const BASE_URL = "https://anitaku.so/";
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36";
 const keys = {
@@ -14,6 +14,7 @@ const keys = {
 };
 
 let referer = "";
+
 export const extract = async (id) => {
   let datapg;
   try {
@@ -47,6 +48,29 @@ export const extract = async (id) => {
   });
   const $ = load(res.data);
 
+  const iframeUrls = [];
+  const liElements = $("#list-server-more > ul > li");
+  liElements.each((index, element) => {
+    const videoUrl = $(element).attr("data-video");
+    iframeUrls.push({
+      name: $(element).text(),
+      iframe: videoUrl,
+    });
+  });
+
+  if (!iframeUrls.some((item) => item.name.includes("Vidstreaming"))) {
+    return {
+      info: {
+        title,
+        id: ani_id,
+        episode: id.split("-episode-")[1],
+      },
+      sources: null,
+      tracks: "",
+      iframe: iframeUrls,
+    };
+  }
+
   const encyptedParams = await generateEncryptedAjaxParams(
     $,
     videoUrl.searchParams.get("id") ?? ""
@@ -62,34 +86,44 @@ export const extract = async (id) => {
   const decryptedData = await decryptAjaxData(encryptedData.data.data);
   if (!decryptedData.source)
     throw new Error("No source found. Try a different server.");
+
   let sources = [];
   decryptedData.source.forEach((source) => {
     sources.push({
       url: source.file,
+      label: source.label,
       isM3U8: source.file.includes(".m3u8"),
-      quality: "default",
+      quality: source.default === true ? "default" : source.default === undefined ? "default" : "default",
     });
   });
 
-  decryptedData.source_bk.forEach((source) => {
+  if (decryptedData.source_bk === "") {
     sources.push({
-      url: source.file,
-      isM3U8: source.file.includes(".m3u8"),
+      url: "",
+      label: "",
+      isM3U8: false,
       quality: "backup",
     });
-  });
+  } else {
+    decryptedData.source_bk.forEach((source) => {
+      sources.push({
+        url: source.file,
+        label: source.label,
+        isM3U8: source.file.includes(".m3u8"),
+        quality: "backup",
+      });
+    });
+  }
+
   return {
     info: {
       title,
       id: ani_id,
       episode: id.split("-episode-")[1],
     },
-    sources,
-    tracks: decryptedData.track.tracks,
-    iframe: {
-      default: videoUrl.href,
-      backup: decryptedData.linkiframe,
-    },
+    sources: sources,
+    tracks: decryptedData?.track.tracks,
+    iframe: iframeUrls.slice(1),
   };
 };
 
