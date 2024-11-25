@@ -26,9 +26,9 @@ COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
 # [optional] tests & build
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 RUN bun test
-RUN bun run build
+RUN bun run dev
 
 # copy production dependencies and source code into final image
 FROM base AS release
