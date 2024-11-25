@@ -12,7 +12,7 @@ WORKDIR /usr/src/app
 FROM base AS install
 RUN mkdir -p /temp/dev
 COPY package.json bun.lockb /temp/dev/
-RUN cd /temp/dev && bun install --frozen-lockfile
+RUN cd /temp/dev && bun install
 
 # install with --production (exclude devDependencies)
 RUN mkdir -p /temp/prod
