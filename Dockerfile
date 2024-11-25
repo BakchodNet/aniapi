@@ -4,7 +4,7 @@
 FROM oven/bun:1 AS base
 WORKDIR /usr/src/app
 
-LABEL "traefik.http.middlewares.test-http-cache.plugin.httpCache.maxTtl"="300"
+#LABEL "traefik.http.middlewares.test-http-cache.plugin.httpCache.maxTtl"="300"
 
 
 # install dependencies into temp directory
